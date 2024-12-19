@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client View</title>
+    <style>
+        /* Basic styles for layout */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Flexbox for form in a single row */
+        .form-row {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            width: 14%; /* Adjust width to make fields fit in one row */
+            margin: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .summary-table th {
+            background-color: #f4f4f4;
+        }
+
+        .school-info {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .school-info img {
+            width: 100px;
+            height: 100px;
+            margin-right: 20px;
+        }
+
+        .school-info .details {
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-wrap: wrap;
+            }
+
+            .form-group {
+                width: 100%;
+            }
+
+            .summary-table th, .summary-table td {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Client View</h1>
+
+        <!-- Form Row with fields in a single line -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="country">Country</label>
+                <select id="country" onchange="populateCities()"></select>
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <select id="city" onchange="populateSchools()"></select>
+            </div>
+            <div class="form-group">
+                <label for="school">School</label>
+                <select id="school" onchange="populateCourses()"></select>
+            </div>
+            <div class="form-group">
+                <label for="course">Course</label>
+                <select id="course" onchange="populateWeeks()"></select>
+            </div>
+            <div class="form-group">
+                <label for="weeks">Number of Weeks</label>
+                <select id="weeks" onchange="updateSummary()"></select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="accommodation-checkbox" onchange="toggleAccommodation()"> Accommodation
+                </label>
+                <select id="accommodation-weeks" style="display: none;" onchange="updateSummary()">
+                    <!-- Populate weeks dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="insurance-checkbox" onchange="updateSummary()"> Insurance
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="airport-checkbox" onchange="updateSummary()"> Airport Pick-Up
+                </label>
+            </div>
+        </div>
+
+        <!-- Summary Table -->
+        <h2>Summary</h2>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>City</th>
+                    <th>School</th>
+                    <th>Course</th>
+                    <th>Weeks</th>
+                    <th>Study Fees</th>
+                    <th>Accommodation Weeks</th>
+                    <th>Accommodation Fees</th>
+                    <th>Insurance Fees</th>
+                    <th>Airport Pick-Up Fees</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="summary-country">N/A</td>
+                    <td id="summary-city">N/A</td>
+                    <td id="summary-school">N/A</td>
+                    <td id="summary-course">N/A</td>
+                    <td id="summary-weeks">N/A</td>
+                    <td id="summary-study-fees">0.00 SAR</td>
+                    <td id="summary-accommodation-weeks">N/A</td>
+                    <td id="summary-accommodation-fees">0.00 SAR</td>
+                    <td id="summary-insurance-fees">0.00 SAR</td>
+                    <td id="summary-airport-fees">0.00 SAR</td>
+                    <td id="summary-total">0.00 SAR</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- School Information -->
+        <div id="school-info" class="school-info" style="display: none;">
+            <img id="school-icon" src="" alt="School Icon">
+            <div class="details">
+                <p><strong>School:</strong> <span id="school-name">N/A</span></p>
+                <p><strong>Description:</strong> <span id="school-description">N/A</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const data = JSON.parse(localStorage.getItem('dashboardData')) || [];
+
+        function populateSelect(element, options) {
+            element.innerHTML = '<option value="">Select</option>';
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                element.appendChild(option);
+            });
+        }
+
+        function populateCountries() {
+            const countries = [...new Set(data.map(item => item.country))];
+            populateSelect(document.getElementById('country'), countries);
+        }
+
+        function populateCities() {
+            const selectedCountry = document.getElementById('country').value;
+            const cities = [...new Set(data.filter(item => item.country === selectedCountry).map(item => item.city))];
+            populateSelect(document.getElementById('city'), cities);
+        }
+
+        function populateSchools() {
+            const selectedCity = document.getElementById('city').value;
+            const schools = [...new Set(data.filter(item => item.city === selectedCity).map(item => item.school))];
+            populateSelect(document.getElementById('school'), schools);
+        }
+
+        function populateCourses() {
+            const selectedSchool = document.getElementById('school').value;
+            const courses = [...new Set(data.filter(item => item.school === selectedSchool).map(item => item.course))];
+            populateSelect(document.getElementById('course'), courses);
+        }
+
+        function populateWeeks() {
+            const selectedCourse = document.getElementById('course').value;
+            const weeks = [...new Set(data.filter(item => item.course === selectedCourse).map(item => item.weeks))];
+            populateSelect(document.getElementById('weeks'), weeks);
+        }
+
+        function populateAccommodationWeeks() {
+            const accommodationWeeks = Array.from({ length: 50 }, (_, i) => i + 1);
+            populateSelect(document.getElementById('accommodation-weeks'), accommodationWeeks);
+        }
+
+        function toggleAccommodation() {
+            const accommodationSelect = document.getElementById('accommodation-weeks');
+            accommodationSelect.style.display = document.getElementById('accommodation-checkbox').checked ? "block" : "none";
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const country = document.getElementById('country').value || "N/A";
+            const city = document.getElementById('city').value || "N/A";
+            const school = document.getElementById('school').value || "N/A";
+            const course = document.getElementById('course').value || "N/A";
+            const weeks = parseInt(document.getElementById('weeks').value) || 0;
+
+            const accommodationWeeks = document.getElementById('accommodation-checkbox').checked
+                ? parseInt(document.getElementById('accommodation-weeks').value) || 0
+                : 0;
+
+            const insuranceChecked = document.getElementById('insurance-checkbox').checked;
+            const airportChecked = document.getElementById('airport-checkbox').checked;
+
+            // Find the selected entry
+            const selectedEntry = data.find(item =>
+                item.country === country &&
+                item.city === city &&
+                item.school === school &&
+                item.course === course &&
+                parseInt(item.weeks) === weeks
+            );
+
+            const studyFees = selectedEntry ? parseFloat(selectedEntry.studyFees) : 0;
+            const accommodationFeesPerWeek = selectedEntry ? parseFloat(selectedEntry.accommodationFees) : 0;
+            const accommodationFees = accommodationFeesPerWeek * accommodationWeeks;
+
+            const insuranceFeesPerWeek = selectedEntry ? parseFloat(selectedEntry.insuranceFees) : 0;
+            const insuranceFees = insuranceChecked ? insuranceFeesPerWeek * weeks : 0;
+
+            const airportFees = airportChecked && selectedEntry ? parseFloat(selectedEntry.airportPickupFees) : 0;
+
+            // Calculate total
+            const total = studyFees + accommodationFees + insuranceFees + airportFees;
+
+            // Update summary
+            document.getElementById('summary-country').textContent = country;
+            document.getElementById('summary-city').textContent = city;
+            document.getElementById('summary-school').textContent = school;
+            document.getElementById('summary-course').textContent = course;
+            document.getElementById('summary-weeks').textContent = weeks || "N/A";
+            document.getElementById('summary-study-fees').textContent = studyFees.toFixed(2) + " SAR";
+            document.getElementById('summary-accommodation-weeks').textContent = accommodationWeeks || "N/A";
+            document.getElementById('summary-accommodation-fees').textContent = accommodationFees.toFixed(2) + " SAR";
+            document.getElementById('summary-insurance-fees').textContent = insuranceFees.toFixed(2) + " SAR";
+            document.getElementById('summary-airport-fees').textContent = airportFees.toFixed(2) + " SAR";
+            document.getElementById('summary-total').textContent = total.toFixed(2) + " SAR";
+
+            // Display school information
+            if (selectedEntry) {
+                document.getElementById('school-name').textContent = selectedEntry.school;
+                document.getElementById('school-description').textContent = selectedEntry.description || "No description available";
+                document.getElementById('school-icon').src = selectedEntry.iconLink || ''; 
+                document.getElementById('school-info').style.display = "flex";
+            }
+        }
+
+        window.onload = function () {
+            populateCountries();
+            populateAccommodationWeeks();
+        };
+    </script>
+</body>
+</html>
